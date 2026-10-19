@@ -36,7 +36,11 @@ fn the_thumbnail_bar_settles_on_a_deck_longer_than_its_cache() {
     // Long enough to have rendered the whole deck at the old three-per-frame rate.
     h.run_steps(400);
     let (thumbs, renders) = (h.state().textures.thumb_count(), h.state().textures.thumb_renders);
-    assert!(thumbs < 100, "only the rows on screen are cached, not the whole deck: {thumbs}");
+    // The rows on screen, and only those. The upper bound alone would also hold if the visibility
+    // check rejected every row: the pane would show nothing, and both this and the settling
+    // assertion below would pass at zero (#1038 review). Six rows fit this window.
+    assert!((1..100).contains(&thumbs), "the rows on screen are cached, and no more: {thumbs}");
+    assert!(renders >= thumbs as u64, "each cached thumbnail was rendered: {renders} renders for {thumbs}");
 
     // And it stays settled: nothing re-renders while nothing moves. Rendering every slide used to
     // overrun the cache, evict what had just been drawn and start again, so this kept climbing.
