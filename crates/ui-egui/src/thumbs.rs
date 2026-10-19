@@ -115,7 +115,12 @@ fn list(app: &mut SlideApp, ui: &mut Ui) {
             p.text(pos2(row.min.x + 14.0, img.min.y + 20.0), Align2::CENTER_TOP, "★", theme::font(10.0), t.text_faint);
         }
         let wpx = (img.width() * ppp).round() as u32;
-        match app.textures.thumb(ui.ctx(), &doc, i, wpx, &mut budget) {
+        // Only a row on screen needs a thumbnail. Asking for every slide's walked the whole deck
+        // each frame, so a deck longer than the cache holds (600) kept evicting the thumbnails it
+        // had just rendered and starting over: the bar flashed white and never settled, and the
+        // renderer never went idle (#969). An off-screen row draws nothing and asks for nothing.
+        let visible = ui.is_rect_visible(row);
+        match visible.then(|| app.textures.thumb(ui.ctx(), &doc, i, wpx, &mut budget)).flatten() {
             Some(tex) => {
                 p.image(
                     tex.id(),
@@ -126,7 +131,8 @@ fn list(app: &mut SlideApp, ui: &mut Ui) {
             }
             None => {
                 p.rect_filled(img, CornerRadius::ZERO, Color32::WHITE);
-                need_more = true;
+                // Another frame is only worth asking for while a row on screen is still waiting.
+                need_more |= visible;
             }
         }
         if selected {

@@ -46,6 +46,9 @@ pub struct Textures {
     drawn: Option<(usize, Rect)>,
     /// Canvas renders so far (tests, performance checks).
     pub canvas_renders: u64,
+    /// Thumbnail renders so far (tests, performance checks): it must settle once the thumbnails
+    /// on screen are cached, however many slides the deck has.
+    pub thumb_renders: u64,
     thumbs: HashMap<usize, Entry>,
     /// SmartArt gallery pictures by layout, style and colours (and, for hover previews, the
     /// outline's hash).
@@ -384,6 +387,7 @@ impl Textures {
         let (tw, th) = fit_size((width_px, h), max_side(ctx));
         let scale = tw as f64 / p.slide_size.width.max(1.0);
         let img = deckcraft_render::render_slide(p, index, &RenderOpts { scale, size: Some((tw, th)), threads: 0, ..Default::default() });
+        self.thumb_renders += 1;
         let tex = upload_editor(ctx, format!("thumb-{index}"), to_color_image(&img, false));
         // Drop the old entry for this slide address; entries for slides that no longer exist age out.
         let region = key.want;
