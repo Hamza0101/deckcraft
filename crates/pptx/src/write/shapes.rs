@@ -1067,4 +1067,30 @@ mod tests {
         geometry(&mut w, &Geom::Preset { name: "textBox".into(), adj: vec![] });
         assert_eq!(w.s, r#"<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>"#);
     }
+
+    /// The connectors outside the gallery get their whole guide list too, from the spec's defaults:
+    /// a bentConnector5 with only its first value was written as a lone `adj`, a guide that preset
+    /// doesn't have, and the other two were left to whoever read it.
+    #[test]
+    fn connectors_outside_the_gallery_write_every_guide() {
+        let written = |name: &str, adj: Vec<f64>| {
+            let mut w = W::frag();
+            geometry(&mut w, &Geom::Preset { name: name.into(), adj });
+            w.s
+        };
+        assert_eq!(
+            written("bentConnector5", vec![25000.0]),
+            r#"<a:prstGeom prst="bentConnector5"><a:avLst><a:gd name="adj1" fmla="val 25000"/><a:gd name="adj2" fmla="val 50000"/><a:gd name="adj3" fmla="val 50000"/></a:avLst></a:prstGeom>"#
+        );
+        assert_eq!(
+            written("bentConnector4", vec![25000.0]),
+            r#"<a:prstGeom prst="bentConnector4"><a:avLst><a:gd name="adj1" fmla="val 25000"/><a:gd name="adj2" fmla="val 50000"/></a:avLst></a:prstGeom>"#
+        );
+        assert_eq!(
+            written("curvedConnector4", vec![-10000.0]),
+            r#"<a:prstGeom prst="curvedConnector4"><a:avLst><a:gd name="adj1" fmla="val -10000"/><a:gd name="adj2" fmla="val 50000"/></a:avLst></a:prstGeom>"#
+        );
+        // No values given stays an empty list (the reader's defaults apply), as before.
+        assert_eq!(written("curvedConnector5", vec![]), r#"<a:prstGeom prst="curvedConnector5"><a:avLst/></a:prstGeom>"#);
+    }
 }
